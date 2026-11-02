@@ -1,0 +1,9 @@
+# Não há workspaces; este arquivo existe para as configurações de segurança do pnpm.
+
+# Bloqueia a instalação de versões publicadas há menos de 24 h (em minutos).
+# Reduz o risco de pacotes comprometidos que são retirados logo após a publicação.
+minimumReleaseAge: 1440
+
+# pnpm 10 não executa scripts de instalação por padrão. Só os pacotes listados
+# aqui podem executá-los; qualquer adição precisa de revisão.
+onlyBuiltDependencies: []

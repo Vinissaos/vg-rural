@@ -1,0 +1,128 @@
+# Configuração do Supabase LOCAL do VG Rural (Etapa 0.2b).
+#
+# Gerada a partir do template do Supabase CLI 2.122.0 (`supabase init`) e endurecida
+# conforme docs/adr/0008-supabase-local-e-testes.md. Use somente opções existentes
+# nesse template. Nunca coloque segredos literais aqui: use env(NOME_DA_VARIAVEL).
+#
+# Este arquivo vale apenas para o ambiente local e para a CI. Nenhum projeto
+# hospedado é configurado ou conectado a partir dele.
+#
+# Inicie sempre por `pnpm db:start`, que cria a rede Docker presa a 127.0.0.1 e
+# verifica que nenhuma porta ficou exposta fora do localhost.
+
+project_id = "vg-rural"
+
+[api]
+# PostgREST: necessário para os testes de exposição a partir da Etapa 0.2c.
+enabled = true
+port = 54321
+# Somente o schema public é exposto. graphql_public fica fora da API.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+# auto_expose_new_tables NÃO é definido: o padrão é não expor tabelas novas.
+
+[api.tls]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+# Precisa coincidir com o futuro projeto hospedado (a confirmar).
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+# Sem seeds na Etapa 0.2b. Dados fictícios só a partir da Etapa 0.2c.
+enabled = false
+sql_paths = []
+
+[realtime]
+enabled = false
+
+[studio]
+# O Studio dá acesso total ao banco local. Desligado por padrão e nunca na CI.
+enabled = false
+
+[local_smtp]
+# Religar na Etapa 0.2f (recuperação de senha), sem SMTP real.
+enabled = false
+
+[storage]
+# Somente na Etapa 2 (documentos).
+enabled = false
+
+[auth]
+# Mantido ligado para criar o schema auth (auth.users, auth.sessions) usado pelos
+# testes das próximas etapas. Nenhum login é implementado na aplicação nesta etapa.
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = []
+# Token de acesso de 15 minutos (ADR 0004, proposto).
+jwt_expiry = 900
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Cadastro público desativado: contas só por seed local (ADR 0004).
+enable_signup = false
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+# Mínimo de 12 caracteres, sem regras de composição (proposto).
+minimum_password_length = 12
+password_requirements = ""
+
+[auth.rate_limit]
+# Valores explícitos; revisão completa no ADR 0005 (Etapa 0.2g).
+email_sent = 2
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "60s"
+otp_length = 6
+otp_expiry = 900
+
+[auth.sms]
+# Sem SMS (ADR 0004).
+enable_signup = false
+enable_confirmations = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+# TOTP planejado para todos os usuários (ADR 0004). Sem interface nesta etapa.
+enroll_enabled = true
+verify_enabled = true
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.web3.solana]
+enabled = false
+
+[auth.oauth_server]
+enabled = false
+allow_dynamic_registration = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+# Desligado: também evita montar o socket do Docker no container de logs.
+enabled = false

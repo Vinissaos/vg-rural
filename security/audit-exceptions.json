@@ -1,0 +1,4 @@
+{
+  "$comment": "Exceções temporárias de auditoria. Só são aceitas pela verificação scripts/audit-gate.ts sob as condições documentadas em docs/seguranca/vulnerabilidades-conhecidas.md. Nenhuma exceção ativa: a do GHSA-vfj7-8cjw-p6xm (braces) foi removida após o advisory ser retirado em 23/10/2026.",
+  "exceptions": []
+}
