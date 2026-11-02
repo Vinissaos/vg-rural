@@ -4,7 +4,9 @@ A auditoria completa continua **bloqueante** na CI. Ela é feita por
 `pnpm audit:gate` (`scripts/audit-gate.ts`), que roda o `pnpm audit` completo,
 sem filtro de severidade, e só aceita advisories cobertos por uma exceção
 temporária registrada em [`security/audit-exceptions.json`](../../security/audit-exceptions.json),
-sob condições verificadas automaticamente. Nenhum override de dependência é usado.
+sob condições verificadas automaticamente. Overrides de dependência só são usados
+quando corrigem uma vulnerabilidade sem versão compatível publicada (ver
+"Overrides de segurança ativos").
 
 ## Como a verificação decide (falha fechada)
 
@@ -44,6 +46,40 @@ metadados públicos de pacotes.
 qualquer advisory, de qualquer severidade e em qualquer dependência, reprova a CI.
 O mecanismo de exceções continua disponível para uso futuro, sempre com aprovação
 explícita, prazo de expiração e verificação automática.
+
+## Overrides de segurança ativos
+
+### GHSA-g3hv-75wg-m249: `minimatch` (moderada), em vigor desde 02/11/2026
+
+- **Problema:** negação de serviço por amplificação de padrões (CWE-405) em
+  `minimatch` < 11.0.1. Correção oficial: `>= 11.0.1`.
+- **Onde aparecia:** só em ferramentas de desenvolvimento. `eslint@9.39.5`, os
+  plugins `react`, `jsx-a11y` e `import` e `@eslint/*` usavam `minimatch@3.1.5`;
+  `@typescript-eslint/typescript-estree` usava `minimatch@10.2.6`. A auditoria de
+  produção continua sem advisories.
+- **Por que override:** nenhuma versão desses pacotes aceita `minimatch` 11
+  (ESLint 9 exige `^3`, ESLint 10 exige `^10.2.6`, typescript-eslint exige
+  `^10.2.2`), e a verificação recusa exceções quando há correção oficial.
+- **Ação:** `overrides: { minimatch: 11.0.3 }` em `pnpm-workspace.yaml` (11.0.4 foi
+  publicada há menos de 24 h e seria barrada pelo `minimumReleaseAge`).
+- **Compatibilidade verificada:** no `minimatch` 11, `require("minimatch")` deixou de
+  ser uma função e não há `default`. O núcleo do ESLint, `@eslint/*` e
+  typescript-eslint usam `Minimatch`/`minimatch` nomeados (compatíveis). Nos
+  plugins, as chamadas incompatíveis ficam em regras que **não estão ativas** neste
+  projeto; a única ativa, `react/no-danger`, só chama o `minimatch` com a opção
+  `customComponentNames`, que não é usada. Testado: `react/no-danger`, `no-eval` e
+  `no-restricted-properties` continuam acusando violações, e os padrões de
+  ignorar arquivos continuam valendo.
+- **Atenção:** ativar uma das regras abaixo (ou `customComponentNames` em
+  `react/no-danger`) pode quebrar o lint com erro explícito enquanto o override
+  existir: `react/forbid-component-props`, `react/jsx-handler-names`,
+  `react/jsx-pascal-case`, `react/no-unstable-nested-components`,
+  `jsx-a11y/label-has-associated-control`, `jsx-a11y/control-has-associated-label`
+  e as regras `import/order`, `extensions`, `no-extraneous-dependencies`,
+  `no-restricted-paths`, `no-internal-modules`, `no-namespace`,
+  `no-unassigned-import` e `no-import-module-exports`.
+- **Remoção:** assim que eslint, typescript-eslint e os plugins aceitarem
+  `minimatch >= 11.0.1`, remover o override e conferir `pnpm audit:gate`.
 
 ## Limites conhecidos
 

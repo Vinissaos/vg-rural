@@ -56,10 +56,15 @@ const fakeAdvisory: Adv = {
   findings: [{ version: "1.0.0", paths: [".>vitest>pacote-ficticio"] }],
 };
 
+// Como o pnpm: uma vulnerabilidade por versão afetada encontrada (cada item de
+// `findings`), não uma por advisory.
 function report(advisories: Adv[], totalDependencies = 485): string {
   const counts = { info: 0, low: 0, moderate: 0, high: 0, critical: 0 };
   for (const advisory of advisories) {
-    counts[advisory.severity as keyof typeof counts] += 1;
+    const findings = Array.isArray(advisory.findings)
+      ? advisory.findings.length
+      : 0;
+    counts[advisory.severity as keyof typeof counts] += findings;
   }
   return JSON.stringify({
     actions: [],
@@ -304,6 +309,43 @@ describe("exceção de auditoria: falhas obrigatórias", () => {
       expect(result.errors.join("\n")).toContain(message);
     },
   );
+});
+
+describe("contagem do relatório: uma vulnerabilidade por versão afetada", () => {
+  // Advisory fictício com duas versões vulneráveis instaladas, como o pnpm relata
+  // quando o mesmo pacote aparece em versões diferentes na árvore.
+  const twoVersions = {
+    ...fakeAdvisory,
+    findings: [
+      { version: "1.0.0", paths: [".>vitest>pacote-ficticio"] },
+      { version: "0.9.0", paths: [".>ferramenta-ficticia>pacote-ficticio"] },
+    ],
+  };
+
+  it("aceita a contagem por versão e avalia o advisory normalmente (sem exceção, reprova)", () => {
+    const result = gate({
+      fullRun: auditRun([twoVersions]),
+      exceptionsRaw: COMMITTED_EXCEPTIONS,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual([
+      "GHSA-2222-3333-4444 (low) em pacote-ficticio: sem exceção autorizada",
+    ]);
+  });
+
+  it("reprova contagem que não bate com o número de versões afetadas", () => {
+    const result = gate({
+      fullRun: {
+        status: 1,
+        stdout: report([twoVersions]).replace('"low":2', '"low":1'),
+      },
+      exceptionsRaw: COMMITTED_EXCEPTIONS,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toContain(
+      "relatório inconsistente (2 ocorrências em 1 advisories, 1 na contagem)",
+    );
+  });
 });
 
 describe("arquivo de exceções versionado", () => {
