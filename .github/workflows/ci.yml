@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  # Reexecuta semanalmente para detectar novas vulnerabilidades, correções
+  # publicadas e advisories retirados. Agendamentos só valem a partir do branch padrão.
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+# Menor privilégio: o workflow só lê o repositório.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+# Actions fixadas por SHA de commit (tags podem ser movidas).
+jobs:
+  qualidade:
+    name: Lint, tipos, testes, build e bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Valores explícitos e fictícios: o build de produção exige ambos.
+      APP_ENV: test
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Segredo-canário fictício
+        # Valor aleatório por execução, mascarado nos logs. A varredura do bundle
+        # e o teste de fumaça falham se ele aparecer em qualquer resposta ou arquivo.
+        run: |
+          canary="$(openssl rand -hex 24)"
+          echo "::add-mask::${canary}"
+          echo "SMOKE_CANARY_SECRET=${canary}" >> "$GITHUB_ENV"
+      - run: pnpm build
+      - name: Varredura de segredos no bundle
+        run: pnpm check:bundle
+      - name: Teste de fumaça (cabeçalhos e segredos nas respostas)
+        run: |
+          pnpm start > next-start.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:3000/api/health && break
+            sleep 1
+          done
+          pnpm smoke || { cat next-start.log; exit 1; }
+
+  auditoria:
+    name: Vulnerabilidades conhecidas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # Necessário para listar a árvore de produção (pnpm list); sem instalação
+      # a árvore vem vazia e a verificação reprova por relatório incompleto.
+      - run: pnpm install --frozen-lockfile
+      - name: Dependências de produção
+        run: pnpm audit --prod --audit-level low
+      - name: Todas as dependências (verificação com exceções temporárias)
+        # Roda o `pnpm audit` completo, sem filtro de severidade, e só aceita os
+        # advisories de security/audit-exceptions.json sob as condições verificadas
+        # em scripts/lib/audit-gate.ts. Qualquer outro advisory reprova.
+        run: pnpm audit:gate
+      - name: Publicar relatórios da auditoria
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: auditoria-dependencias
+          path: audit-reports/
+          if-no-files-found: warn
+          retention-days: 90
+
+  banco:
+    name: Banco local e testes de isolamento
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Opt-out de telemetria do Supabase CLI (documentado pelo Supabase).
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DO_NOT_TRACK: "1"
+    # Nenhum segredo do GitHub e nenhum artefato neste job. A saída do
+    # `supabase start` (que contém chaves locais) vai só para um arquivo em
+    # $RUNNER_TEMP; em falha, scripts/supabase-local.ts mostra apenas as últimas
+    # linhas mascaradas. Nunca usar `supabase status` nem `--debug` aqui.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Iniciar Supabase local (rede presa a 127.0.0.1, sem imprimir chaves)
+        run: pnpm db:start
+      - name: Verificar que nenhuma porta ficou exposta fora do localhost
+        run: pnpm db:verify
+      - name: Testes de privilégios e de catálogo (pgTAP)
+        run: pnpm db:test
+      - name: Parar Supabase local
+        if: always()
+        run: pnpm db:stop
+
+  segredos:
+    name: Detecção de segredos (gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Instalar gitleaks (checksum verificado)
+        run: |
+          curl -sSLo gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum --check
+          tar xzf gitleaks.tar.gz gitleaks
+      - name: Varrer todo o histórico do Git
+        run: ./gitleaks git --redact --verbose --no-banner .
