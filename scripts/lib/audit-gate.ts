@@ -131,9 +131,16 @@ export function parseAuditRun(label: string, run: CommandResult): AuditReport {
   const parsed = Object.values(advisories).map((raw) =>
     parseAdvisory(label, raw),
   );
-  if (parsed.length !== total) {
+  // O pnpm conta uma vulnerabilidade por versão afetada encontrada (cada item
+  // de `findings`), não uma por advisory: um advisory com duas versões
+  // vulneráveis instaladas soma 2 na contagem.
+  const occurrences = parsed.reduce(
+    (sum, advisory) => sum + advisory.findings.length,
+    0,
+  );
+  if (occurrences !== total) {
     fail(
-      `${label}: relatório inconsistente (${parsed.length} advisories, ${total} na contagem)`,
+      `${label}: relatório inconsistente (${occurrences} ocorrências em ${parsed.length} advisories, ${total} na contagem)`,
     );
   }
   if ((run.status === 0) !== (parsed.length === 0)) {

@@ -33,12 +33,14 @@ A solução pretende oferecer:
 A primeira fase priorizou a estrutura técnica e a segurança da aplicação.
 
 **Aplicação web**
+
 - Estrutura inicial utilizando Next.js, React e TypeScript.
 - Página inicial institucional.
 - Endpoint de verificação de disponibilidade.
 - Validação de variáveis de ambiente com Zod.
 
 **Segurança da informação**
+
 - Configuração de Content Security Policy (CSP).
 - Implementação de cabeçalhos HTTP de segurança.
 - Verificações de exposição acidental de segredos.
@@ -46,6 +48,7 @@ A primeira fase priorizou a estrutura técnica e a segurança da aplicação.
 - Documentação de arquitetura de segurança e modelo de ameaças.
 
 **Testes e automação**
+
 - Testes unitários com Vitest.
 - Testes de banco de dados com pgTAP.
 - Configuração de pipelines no GitHub Actions.
@@ -54,6 +57,7 @@ A primeira fase priorizou a estrutura técnica e a segurança da aplicação.
 - Dependabot para manutenção de dependências.
 
 **Resultados reportados em testes locais:**
+
 - 215 testes unitários aprovados.
 - 35 asserções pgTAP aprovadas.
 
@@ -61,17 +65,17 @@ A execução da versão final dos testes na CI do GitHub ainda precisa ser confi
 
 ## Tecnologias utilizadas
 
-| Categoria | Tecnologias |
-|---|---|
-| Front-end | Next.js 16, React 19, Tailwind CSS 4 |
-| Linguagem | TypeScript 6 |
-| Banco de dados local | PostgreSQL 17, Supabase |
-| Validação | Zod 4 |
-| Testes | Vitest, pgTAP |
-| Segurança | CSP, gitleaks, controles de privilégios |
-| Automação e CI | GitHub Actions, Dependabot |
-| Qualidade de código | ESLint, Prettier |
-| Ferramentas | pnpm, Node.js, Docker |
+| Categoria            | Tecnologias                             |
+| -------------------- | --------------------------------------- |
+| Front-end            | Next.js 16, React 19, Tailwind CSS 4    |
+| Linguagem            | TypeScript 6                            |
+| Banco de dados local | PostgreSQL 17, Supabase                 |
+| Validação            | Zod 4                                   |
+| Testes               | Vitest, pgTAP                           |
+| Segurança            | CSP, gitleaks, controles de privilégios |
+| Automação e CI       | GitHub Actions, Dependabot              |
+| Qualidade de código  | ESLint, Prettier                        |
+| Ferramentas          | pnpm, Node.js, Docker                   |
 
 ## Próximas etapas
 
@@ -91,6 +95,5 @@ Capturas de tela e demonstrações serão adicionadas conforme as funcionalidade
 ---
 
 **Desenvolvido por Vinicius Gabriel Miranda Neves**
-
 
 Este projeto integra meu portfólio de desenvolvimento de software, arquitetura de aplicações, segurança e automação de processos.

@@ -1,0 +1,47 @@
+# Responsáveis por áreas sensíveis de segurança do VG Rural.
+#
+# Mudanças nestes caminhos afetam autenticação futura, variáveis de ambiente,
+# cabeçalhos de segurança, auditoria de dependências, exceções de risco, a
+# cadeia de dependências e a CI. Exigem revisão manual antes do merge, conforme
+# docs/seguranca/procedimento-de-integracao.md.
+#
+# Plano atual: GitHub Free com repositório privado. A proteção obrigatória da
+# main (rulesets/branch protection) e a regra "Require review from Code Owners"
+# não estão disponíveis; este arquivo documenta a responsabilidade e passa a ser
+# aplicado automaticamente se o plano mudar.
+#
+# Caminhos ancorados na raiz do repositório. Em caso de sobreposição, a última
+# regra que casar prevalece.
+
+# Segurança da aplicação e configuração
+/src/lib/security/              @Vinissaos
+/src/lib/env/                   @Vinissaos
+/next.config.ts                 @Vinissaos
+/src/proxy.ts                   @Vinissaos
+/src/instrumentation.ts         @Vinissaos
+/eslint.config.mjs              @Vinissaos
+
+# Auditoria de dependências, exceções de risco e verificações
+/security/                      @Vinissaos
+/scripts/                       @Vinissaos
+/tests/unit/audit-gate.test.ts  @Vinissaos
+
+# Cadeia de dependências (definição de scripts, versões e regras de instalação)
+/package.json                   @Vinissaos
+/pnpm-lock.yaml                 @Vinissaos
+/pnpm-workspace.yaml            @Vinissaos
+/.npmrc                         @Vinissaos
+
+# Arquivos ignorados pelo Git (protege contra commit de segredos e chaves locais)
+/.gitignore                     @Vinissaos
+
+# Banco de dados, autenticação e autorização (a partir da Etapa 0.2)
+/supabase/                      @Vinissaos
+/src/lib/authz/                 @Vinissaos
+/src/lib/supabase/              @Vinissaos
+
+# Decisões de arquitetura e segurança
+/docs/adr/                      @Vinissaos
+
+# CI, Dependabot e este arquivo
+/.github/                       @Vinissaos

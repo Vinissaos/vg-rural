@@ -7,3 +7,11 @@ minimumReleaseAge: 1440
 # pnpm 10 não executa scripts de instalação por padrão. Só os pacotes listados
 # aqui podem executá-los; qualquer adição precisa de revisão.
 onlyBuiltDependencies: []
+
+# Correção de segurança (GHSA-g3hv-75wg-m249, minimatch < 11.0.1, só em ferramentas
+# de desenvolvimento): o ESLint 9 e seus plugins ainda exigem minimatch 3.x/10.x e
+# não há versão corrigida compatível publicada. O override força a versão
+# corrigida. Remover quando eslint, typescript-eslint e os plugins aceitarem
+# minimatch >= 11.0.1. Detalhes em docs/seguranca/vulnerabilidades-conhecidas.md.
+overrides:
+  minimatch: 11.0.3
